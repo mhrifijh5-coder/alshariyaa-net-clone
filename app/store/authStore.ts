@@ -57,9 +57,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   fetchMe: async (force = false) => {
     if (get().loggingOut || (get().initialized && !force)) return;
     if (checking) { pendingCheck ||= force; return; }
+
+    const cached = get().user ?? readCache();
+
+    // If there is no cached user and this is an unforced check (e.g. initial mount of a guest visitor):
+    // Resolve immediately as guest without spinning up a Vercel Serverless Function!
+    if (!cached && !force) {
+      set({ user: null, loading: false, initialized: true, sessionError: "" });
+      return;
+    }
+
     checking = true;
     const requestRevision = revision;
-    const cached = get().user ?? readCache();
     if (!get().initialized) set({ user: cached, loading: true });
     try {
       // Consult the server session

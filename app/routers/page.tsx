@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const BACKEND =
   process.env.BACKEND_URL ||
@@ -36,7 +36,7 @@ async function getRouters(): Promise<Product[]> {
     const res = await fetch(
       `${BACKEND}/api/products?category=routers&cardOnly=true`,
       {
-        next: { revalidate: 3600, tags: ["routers", "products"] },
+        next: { revalidate: 86400, tags: ["routers", "products"] },
         signal: AbortSignal.timeout(3000),
       }
     );

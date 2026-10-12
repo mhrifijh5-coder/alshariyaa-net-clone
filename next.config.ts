@@ -33,6 +33,27 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // Global security headers applied at CDN level
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+        ],
+      },
+      // Next.js static chunks — cached immutable for 1 year
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       // Static assets — cached for 1 year at browser and CDN level
       {
         source: "/:all*(svg|jpg|jpeg|png|webp|ico|woff|woff2)",

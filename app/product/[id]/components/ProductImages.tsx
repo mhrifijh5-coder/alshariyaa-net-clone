@@ -50,6 +50,7 @@ export default function ProductImages({ images: rawImages, name, discountPercent
                   className="w-full object-cover block min-h-[200px] sm:min-h-[300px]"
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
+                  unoptimized={images[selected]?.includes("cloudinary.com")}
                 />
               </motion.div>
             ) : (
@@ -73,7 +74,14 @@ export default function ProductImages({ images: rawImages, name, discountPercent
               }`}
 
             >
-              <Image src={img} alt="" fill className="object-contain p-1.5" sizes="64px" />
+              <Image
+                src={img}
+                alt=""
+                fill
+                className="object-contain p-1.5"
+                sizes="64px"
+                unoptimized={img?.includes("cloudinary.com")}
+              />
             </button>
           ))}
         </div>

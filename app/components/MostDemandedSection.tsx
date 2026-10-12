@@ -17,7 +17,7 @@ async function getMostDemanded(): Promise<Product[]> {
   try {
     const idsParam = IDS.join(",");
     const res = await fetch(`${BACKEND}/api/products/by-ids?ids=${idsParam}`, {
-      next: { revalidate: 3600, tags: ["products"] },
+      next: { revalidate: 86400, tags: ["products"] },
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return [];

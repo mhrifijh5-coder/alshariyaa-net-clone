@@ -12,7 +12,7 @@ const BACKEND =
   "http://localhost:5000";
 
 export const dynamicParams = false;
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 export function generateStaticParams() {
   return Object.keys(slugConfigs).map((slug) => ({ slug }));
@@ -49,7 +49,7 @@ async function getCategoryProducts(slug: string): Promise<Product[]> {
       ? `?brand=${encodeURIComponent(brand)}&cardOnly=true`
       : "?cardOnly=true";
     const res = await fetch(`${BACKEND}/api/products${query}`, {
-      next: { revalidate: 3600, tags: ["category-products", `category-${slug}`] },
+      next: { revalidate: 86400, tags: ["category-products", `category-${slug}`] },
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return [];

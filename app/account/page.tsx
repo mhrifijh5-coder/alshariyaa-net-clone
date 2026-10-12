@@ -206,7 +206,11 @@ function InfoRow({ label, value, ltr }: { label: string; value?: string; ltr?: b
 function AccountPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading, setUser, logout, initialized, loggingOut, sessionError } = useAuthStore();
+  const { user, loading, setUser, logout, initialized, loggingOut, sessionError, fetchMe } = useAuthStore();
+
+  useEffect(() => {
+    if (!user) void fetchMe(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const urlTab = searchParams.get("tab") === "orders" ? "orders" : "profile";
   const [tab, setTab] = useState<"profile" | "orders">(urlTab);

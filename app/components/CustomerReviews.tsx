@@ -35,7 +35,7 @@ export default function CustomerReviews({ initialReviews }: { initialReviews?: R
   const [activeIdx, setActiveIdx] = useState(0);
 
   useEffect(() => {
-    if (initialReviews && initialReviews.length > 0) return;
+    if (initialReviews !== undefined) return;
     fetch("/api/reviews")
       .then((r) => r.json())
       .then((data) => {

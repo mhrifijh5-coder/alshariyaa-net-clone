@@ -10,13 +10,13 @@ const BACKEND =
   "http://localhost:5000";
 const SITE_URL = "https://www.alshariyaa.com";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
     const res = await fetch(`${BACKEND}/api/products?limit=500&fields=_id`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 86400 },
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return [];
@@ -31,7 +31,7 @@ export async function generateStaticParams() {
 const getProduct = cache(async (id: string) => {
   try {
     const r = await fetch(`${BACKEND}/api/products/${id}`, {
-      next: { revalidate: 3600, tags: [`product_${id}`] },
+      next: { revalidate: 86400, tags: [`product_${id}`] },
       signal: AbortSignal.timeout(3000),
     });
     return r.ok ? await r.json() : null;

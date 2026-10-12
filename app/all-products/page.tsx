@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 async function getAllProducts(): Promise<Product[]> {
   const BACKEND =
@@ -34,7 +34,7 @@ async function getAllProducts(): Promise<Product[]> {
     "http://localhost:5000";
   try {
     const res = await fetch(`${BACKEND}/api/products?cardOnly=true`, {
-      next: { revalidate: 3600, tags: ["products"] },
+      next: { revalidate: 86400, tags: ["products"] },
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return [];

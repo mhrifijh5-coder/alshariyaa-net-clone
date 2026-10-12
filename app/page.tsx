@@ -13,7 +13,7 @@ const SITE_URL = "https://www.alshariyaa.com";
 async function getReviews() {
   try {
     const res = await fetch(`${BACKEND}/api/admin/reviews`, {
-      next: { revalidate: 3600, tags: ["reviews"] },
+      next: { revalidate: 86400, tags: ["reviews"] },
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return [];

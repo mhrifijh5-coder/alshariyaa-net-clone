@@ -32,13 +32,13 @@ export default function RoutersClient({ initialProducts = [] }: { initialProduct
   const { filters, filtered } = useProductFilters(rawProducts);
 
   useEffect(() => {
-    if (initialProducts.length > 0 && rawProducts === initialProducts) return;
+    if (initialProducts && initialProducts.length > 0) return;
     fetch(`/api/products?category=routers&cardOnly=true`)
       .then((r) => r.json())
       .then((data: Product[]) => setRawProducts(sortProducts(data)))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [initialProducts]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [prevFilters, setPrevFilters] = useState(filters);
   if (prevFilters !== filters) { setPrevFilters(filters); if (page !== 1) setPage(1); }

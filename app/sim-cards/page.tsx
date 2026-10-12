@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const BACKEND =
   process.env.BACKEND_URL ||
@@ -36,7 +36,7 @@ async function getSimCards(): Promise<Product[]> {
     const res = await fetch(
       `${BACKEND}/api/products?category=sim-cards&cardOnly=true`,
       {
-        next: { revalidate: 3600, tags: ["sim-cards", "products"] },
+        next: { revalidate: 86400, tags: ["sim-cards", "products"] },
         signal: AbortSignal.timeout(3000),
       }
     );
