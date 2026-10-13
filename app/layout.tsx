@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import TikTokPixel from "./components/TikTokPixel";
+
 import "./globals.css";
 import ClientLayout from "./components/ClientLayout";
 import Footer from "./components/Footer";
@@ -201,8 +201,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             </Script>
           </>
         )}
-
-        <TikTokPixel />
 
         {/* Snap Pixel */}
         <Script id="snap-pixel" strategy="afterInteractive">
