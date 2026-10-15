@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, CheckCircle } from "lucide-react";
 import { useCartStore } from "../../store/cartStore";
-import { identify, track } from "../../lib/useTikTokEvents";
 import { pushPurchase } from "../../lib/gtmEvents";
 import { OrderTracker } from "../../components/OrderTracker";
 
@@ -117,12 +116,6 @@ export default function VerifyPage() {
       claimedRef.current = true;
       await claimOrders();
     }
-    identify();
-    track("Purchase", {
-      contents: (verifyData.items || []).map(i => ({ content_id: i.productId || "", content_type: "product" as const, content_name: i.name })),
-      value: verifyData.amount,
-      currency: "SAR",
-    });
     // ── Google Ads / GA4: purchase ───────────────────────
     pushPurchase({
       transaction_id: verifyData.orderId || verifyData._id || `ord_${Date.now()}`,

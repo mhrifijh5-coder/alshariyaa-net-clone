@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { identify, track } from "../../lib/useTikTokEvents";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { IoArrowForward, IoShareSocial, IoHomeOutline, IoChevronBack, IoCartOutline } from "react-icons/io5";
 import Link from "next/link";
 import type { Product } from "../../components/products/types";
 import { useCartStore } from "../../store/cartStore";
+import { pushViewItem, pushAddToCart } from "../../lib/gtmEvents";
 import ProductImages from "./components/ProductImages";
 import ProductInfo from "./components/ProductInfo";
 import ProductDetails from "./components/ProductDetails";
@@ -21,15 +21,26 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
 
   const product = initialProduct;
 
+  const finalPrice = product ? (product.salePrice ?? product.originalPrice ?? 0) : 0;
+
+  // ── Track ViewContent / view_item when product is viewed ────────────────────
   useEffect(() => {
     if (!product) return;
-    identify();
-    track("ViewContent", {
-      contents: [{ content_id: product._id, content_type: "product", content_name: product.name }],
-      value: product.salePrice ?? product.originalPrice ?? 0,
+    pushViewItem({
       currency: "SAR",
+      value: finalPrice,
+      items: [
+        {
+          item_id: String(product._id),
+          item_name: product.name,
+          price: finalPrice,
+          quantity: 1,
+          item_brand: product.brand,
+          item_category: product.category,
+        },
+      ],
     });
-  }, [product?._id]);
+  }, [product, finalPrice]);
 
   if (!product)
     return (
@@ -38,20 +49,37 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
       </div>
     );
 
-  const resolveImg = (src: string) => src.startsWith("http") ? src : `${API}${src}`;
-  // API still used for image resolution only (not for fetching)
+  const resolveImg = (src: string) => (src.startsWith("http") ? src : `${API}${src}`);
   const merged = [...(product.images || []), ...(product.image ? [product.image] : [])];
   const allImages = [...new Set(merged)].map(resolveImg);
 
   const handleShare = async () => {
-    try { await navigator.share({ title: product.name, url: window.location.href }); } catch {}
+    try {
+      await navigator.share({ title: product.name, url: window.location.href });
+    } catch {}
   };
 
-  const finalPrice = product.salePrice ?? product.originalPrice ?? 0;
+  const handleAddToCart = (qty: number = 1) => {
+    addItem(product, qty);
+    pushAddToCart({
+      currency: "SAR",
+      value: finalPrice * qty,
+      items: [
+        {
+          item_id: String(product._id),
+          item_name: product.name,
+          price: finalPrice,
+          quantity: qty,
+          item_brand: product.brand,
+          item_category: product.category,
+        },
+      ],
+    });
+    setAddedToCart(true);
+  };
 
   return (
     <main className="min-h-screen bg-white pb-28 lg:pb-16" dir="rtl">
-
       {/* Top Bar */}
       <header
         className="sticky top-0 z-50 border-b backdrop-blur-xl bg-white/90"
@@ -78,7 +106,9 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
                   <IoChevronBack size={10} />
                 </>
               )}
-              <span className="font-bold truncate max-w-[180px]" style={{ color: "var(--color-2)" }}>{product.name}</span>
+              <span className="font-bold truncate max-w-[180px]" style={{ color: "var(--color-2)" }}>
+                {product.name}
+              </span>
             </nav>
           </div>
           <button
@@ -98,16 +128,11 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
           <ProductInfo
             product={product}
             addedToCart={addedToCart}
-            onAddToCart={(qty) => {
-              addItem(product, qty);
-              setAddedToCart(true);
-              track("AddToCart", {
-                contents: [{ content_id: product._id, content_type: "product", content_name: product.name }],
-                value: (product.salePrice ?? product.originalPrice ?? 0) * qty,
-                currency: "SAR",
-              });
+            onAddToCart={(qty) => handleAddToCart(qty)}
+            onBuyNow={(qty) => {
+              handleAddToCart(qty);
+              router.push("/cart");
             }}
-            onBuyNow={(qty) => { addItem(product, qty); router.push("/cart"); }}
           />
         </div>
         <ProductDetails
@@ -127,17 +152,23 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
       >
         <div className="px-4 py-3" dir="rtl">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs truncate flex-1 ml-3" style={{ color: "var(--color-3)" }}>{product.name}</p>
+            <p className="text-xs truncate flex-1 ml-3" style={{ color: "var(--color-3)" }}>
+              {product.name}
+            </p>
             <div className="flex items-baseline gap-1">
-              <span className="text-xl font-black" style={{ color: "var(--color-2)" }}>{finalPrice.toLocaleString("en-US")}</span>
-              <span className="text-xs text-gray-400"><img src="/money-icon.webp" alt="ر.س" className="inline w-6 h-6 object-contain align-middle" /></span>
+              <span className="text-xl font-black" style={{ color: "var(--color-2)" }}>
+                {finalPrice.toLocaleString("en-US")}
+              </span>
+              <span className="text-xs text-gray-400">
+                <img src="/money-icon.webp" alt="ر.س" className="inline w-6 h-6 object-contain align-middle" />
+              </span>
             </div>
           </div>
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => {
               if (addedToCart) router.push("/cart");
-              else { addItem(product, 1); setAddedToCart(true); }
+              else handleAddToCart(1);
             }}
             className="cart-btn w-full py-4 rounded-2xl flex items-center justify-center gap-2 text-base font-black"
           >

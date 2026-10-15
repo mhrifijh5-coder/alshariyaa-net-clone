@@ -6,7 +6,6 @@ import Image from "next/image";
 import { Mail, CheckCircle2, Pencil, ArrowLeft, RefreshCw, AlertCircle, ArrowRight } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { normalizeOtp, safeAuthRedirect } from "../lib/authUx";
-import { identify, track } from "../lib/useTikTokEvents";
 
 const COOLDOWN_SECONDS = 60;
 
@@ -1307,10 +1306,6 @@ function AuthPageInner() {
 
   const handleSuccess = (user: object) => {
     setUser(user as Parameters<typeof setUser>[0]);
-    if (tab === "register") {
-      identify();
-      track("CompleteRegistration", { contents: [], value: 0, currency: "SAR" });
-    }
     try { sessionStorage.removeItem(REGISTER_STORAGE_KEY); sessionStorage.removeItem("auth_forgot_draft"); } catch { /* ignore */ }
     const redirect = searchParams.get("redirect");
     const safe = safeAuthRedirect(redirect);

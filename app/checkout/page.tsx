@@ -13,8 +13,7 @@ import CheckoutPayment from "./CheckoutPayment";
 import CustomerSection, { validateCustomer } from "./CustomerSection";
 import type { CustomerData } from "./CustomerSection";
 import { useAuthStore } from "../store/authStore";
-import { identify, track } from "../lib/useTikTokEvents";
-import { pushBeginCheckout } from "../lib/gtmEvents";
+import { pushBeginCheckout, pushPurchase } from "../lib/gtmEvents";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -94,12 +93,6 @@ export default function CheckoutPage() {
   // InitiateCheckout — مرة واحدة بعد التحميل
   useEffect(() => {
     if (!mounted || items.length === 0) return;
-    identify();
-    track("InitiateCheckout", {
-      contents: items.map(i => ({ content_id: i.product._id, content_type: "product" as const, content_name: i.product.name })),
-      value: Math.max(0, totalPrice() - discount),
-      currency: "SAR",
-    });
     // ── Google Ads / GA4: begin_checkout ─────────────────
     pushBeginCheckout({
       currency: "SAR",
@@ -129,14 +122,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const fireAddPaymentInfo = (method: typeof selectedPayment) => {
-    if (!method) return;
-    track("AddPaymentInfo", {
-      contents: items.map(i => ({ content_id: i.product._id, content_type: "product" as const, content_name: i.product.name })),
-      value: finalTotal,
-      currency: "SAR",
-    });
-  };
+  const fireAddPaymentInfo = (_method: typeof selectedPayment) => {};
 
   const applyCoupon = () => {
     if (coupon.trim().toUpperCase() === "SAHLNAHA10") {
@@ -155,7 +141,7 @@ export default function CheckoutPage() {
     if (!address.trim()) e.address = "مطلوب";
     setErrors(e);
     if (Object.keys(e).length) return;
-    setLoading(true);
+    let orderId: string | undefined;
     try {
       const res = await fetch("/api/notify", {
         method: "POST",
@@ -175,15 +161,28 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (res.status === 429) { recordAttempt(); return; }
       recordAttempt();
+      orderId = data?.orderId || data?._id;
     } catch { /* silent */ }
     setLoading(false);
     setCustomer({ name: fullName, nationalId: "", whatsapp: customer.phone, address, installmentType: "full", months: 0, downPayment: 0 } as CustomerInfo);
-    setShowModal(false);
-    track("PlaceAnOrder", {
-      contents: items.map(i => ({ content_id: i.product._id, content_type: "product" as const, content_name: i.product.name })),
-      value: finalTotal,
+    
+    // ── Track CompletePayment / purchase for COD order ──
+    pushPurchase({
+      transaction_id: orderId || `cod_${Date.now()}`,
       currency: "SAR",
+      value: finalTotal,
+      items: items.map(i => ({
+        item_id: String(i.product._id),
+        item_name: i.product.name,
+        price: i.product.salePrice ?? i.product.originalPrice ?? i.product.price,
+        quantity: i.qty,
+        item_brand: i.product.brand,
+        item_category: i.product.category,
+      })),
     });
+    clear();
+
+    setShowModal(false);
     setShowSuccess(true);
   };
 

@@ -8,7 +8,7 @@ const BACKEND =
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000";
-const SITE_URL = "https://www.alshariyaa.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.alshareehanet.com";
 
 export const revalidate = 86400;
 export const dynamicParams = true;
@@ -184,7 +184,8 @@ export default async function ProductPage({
         name: product.name,
         description: product.description || product.name,
         image: imageUrl || undefined,
-        sku: product._id,
+        sku: String(product._id),
+        productID: String(product._id),
         brand: product.brand
           ? { "@type": "Brand", name: product.brand }
           : undefined,
