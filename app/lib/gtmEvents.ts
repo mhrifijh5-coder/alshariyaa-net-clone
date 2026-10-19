@@ -5,7 +5,7 @@
  * المتوافقة كلياً مع:
  *  - Google Tag Manager (Data Layer)
  *  - Google Analytics 4 (GA4 Standard E-commerce)
- *  - TikTok Pixel (سواء عبر GTM Data Layer، أو عبر الوسم الرسمي لـ TikTok، أو استدعاء مباشر لـ ttq)
+ *  - TikTok Pixel (direct ttq call — with retry if ttq not yet loaded)
  *  - Snap Pixel (snaptr)
  *
  * الأحداث المدعومة:
@@ -31,6 +31,26 @@ function dl(): Record<string, unknown>[] {
   if (typeof window === "undefined") return [];
   window.dataLayer = window.dataLayer || [];
   return window.dataLayer;
+}
+
+/**
+ * استدعاء TikTok Pixel مع retry تلقائي إذا لم يكن ttq محملاً بعد.
+ * السبب: السكريبت strategy="afterInteractive" قد يتأخر عن أول render.
+ */
+function ttqTrack(event: string, params: Record<string, unknown>, retries = 8): void {
+  if (typeof window === "undefined") return;
+  if (window.ttq && typeof window.ttq.track === "function") {
+    try {
+      window.ttq.track(event, params);
+    } catch (e) {
+      console.warn(`TikTok Pixel ${event} error:`, e);
+    }
+    return;
+  }
+  // ttq لم يُحمل بعد — انتظر 200ms وأعد المحاولة
+  if (retries > 0) {
+    setTimeout(() => ttqTrack(event, params, retries - 1), 200);
+  }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -77,13 +97,15 @@ export interface PurchasePayload {
 // ─────────────────────────────────────────────────────────
 
 function toTikTokContents(items: GtmItem[]) {
-  return items.map((it) => ({
-    content_id: String(it.item_id),
-    content_name: it.item_name,
-    content_category: it.item_category || "",
-    quantity: it.quantity || 1,
-    price: it.price,
-  }));
+  return items
+    .filter((it) => it.item_id) // تأكد من وجود item_id
+    .map((it) => ({
+      content_id: String(it.item_id),
+      content_name: it.item_name || "",
+      content_category: it.item_category || "",
+      quantity: it.quantity || 1,
+      price: it.price || 0,
+    }));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -134,23 +156,17 @@ export function pushViewItem(payload: ViewItemPayload): void {
     },
   });
 
-  // 3. TikTok Direct Pixel Call (إذا تم حقن ttq بواسطة GTM أو السكربت)
-  if (typeof window !== "undefined" && window.ttq && typeof window.ttq.track === "function") {
-    try {
-      window.ttq.track("ViewContent", {
-        content_id: contentId,
-        content_type: "product",
-        content_name: contentName,
-        quantity: 1,
-        price: payload.value,
-        value: payload.value,
-        currency: payload.currency,
-        contents,
-      });
-    } catch (e) {
-      console.warn("TikTok Pixel ViewContent error:", e);
-    }
-  }
+  // 3. TikTok Direct Pixel Call (مع retry تلقائي)
+  ttqTrack("ViewContent", {
+    content_id: contentId,
+    content_type: "product",
+    content_name: contentName,
+    quantity: 1,
+    price: payload.value,
+    value: payload.value,
+    currency: payload.currency,
+    contents,
+  });
 
   // 4. Snap Pixel Call
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
@@ -207,21 +223,15 @@ export function pushAddToCart(payload: AddToCartPayload): void {
     },
   });
 
-  // 3. TikTok Direct Pixel Call
-  if (typeof window !== "undefined" && window.ttq && typeof window.ttq.track === "function") {
-    try {
-      window.ttq.track("AddToCart", {
-        contents,
-        content_id: contentId,
-        content_name: contentName,
-        content_type: "product",
-        value: payload.value,
-        currency: payload.currency,
-      });
-    } catch (e) {
-      console.warn("TikTok Pixel AddToCart error:", e);
-    }
-  }
+  // 3. TikTok Direct Pixel Call (مع retry تلقائي)
+  ttqTrack("AddToCart", {
+    contents,
+    content_id: contentId,
+    content_name: contentName,
+    content_type: "product",
+    value: payload.value,
+    currency: payload.currency,
+  });
 
   // 4. Snap Pixel Call
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
@@ -243,6 +253,7 @@ export function pushAddToCart(payload: AddToCartPayload): void {
 export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
   const contents = toTikTokContents(payload.items);
   const primaryItem = payload.items[0];
+  const contentId = primaryItem ? String(primaryItem.item_id) : "";
 
   // 1. GTM — GA4 begin_checkout
   dl().push({ ecommerce: null });
@@ -254,7 +265,7 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
       items: payload.items,
     },
     content_type: "product",
-    content_id: primaryItem ? String(primaryItem.item_id) : "",
+    content_id: contentId,
     value: payload.value,
     currency: payload.currency,
     contents,
@@ -264,7 +275,7 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
   dl().push({
     event: "InitiateCheckout",
     content_type: "product",
-    content_id: primaryItem ? String(primaryItem.item_id) : "",
+    content_id: contentId,
     value: payload.value,
     currency: payload.currency,
     contents,
@@ -275,20 +286,14 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
     },
   });
 
-  // 3. TikTok Direct Pixel Call
-  if (typeof window !== "undefined" && window.ttq && typeof window.ttq.track === "function") {
-    try {
-      window.ttq.track("InitiateCheckout", {
-        contents,
-        content_id: primaryItem ? String(primaryItem.item_id) : "",
-        content_type: "product",
-        value: payload.value,
-        currency: payload.currency,
-      });
-    } catch (e) {
-      console.warn("TikTok Pixel InitiateCheckout error:", e);
-    }
-  }
+  // 3. TikTok Direct Pixel Call (مع retry تلقائي)
+  ttqTrack("InitiateCheckout", {
+    contents,
+    content_id: contentId,
+    content_type: "product",
+    value: payload.value,
+    currency: payload.currency,
+  });
 
   // 4. Snap Pixel Call
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
@@ -310,6 +315,7 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
 export function pushPurchase(payload: PurchasePayload): void {
   const contents = toTikTokContents(payload.items);
   const primaryItem = payload.items[0];
+  const contentId = primaryItem ? String(primaryItem.item_id) : "";
 
   // 1. GTM — GA4 purchase
   dl().push({ ecommerce: null });
@@ -323,7 +329,7 @@ export function pushPurchase(payload: PurchasePayload): void {
     },
     transaction_id: payload.transaction_id,
     content_type: "product",
-    content_id: primaryItem ? String(primaryItem.item_id) : "",
+    content_id: contentId,
     value: payload.value,
     currency: payload.currency,
     contents,
@@ -335,7 +341,7 @@ export function pushPurchase(payload: PurchasePayload): void {
     event_id: payload.transaction_id,
     transaction_id: payload.transaction_id,
     content_type: "product",
-    content_id: primaryItem ? String(primaryItem.item_id) : "",
+    content_id: contentId,
     value: payload.value,
     currency: payload.currency,
     contents,
@@ -353,26 +359,21 @@ export function pushPurchase(payload: PurchasePayload): void {
     event_id: payload.transaction_id,
     transaction_id: payload.transaction_id,
     content_type: "product",
+    content_id: contentId,
     value: payload.value,
     currency: payload.currency,
     contents,
   });
 
-  // 4. TikTok Direct Pixel Call
-  if (typeof window !== "undefined" && window.ttq && typeof window.ttq.track === "function") {
-    try {
-      window.ttq.track("CompletePayment", {
-        contents,
-        content_id: primaryItem ? String(primaryItem.item_id) : "",
-        content_type: "product",
-        value: payload.value,
-        currency: payload.currency,
-        event_id: payload.transaction_id,
-      });
-    } catch (e) {
-      console.warn("TikTok Pixel CompletePayment error:", e);
-    }
-  }
+  // 4. TikTok Direct Pixel Call (مع retry تلقائي)
+  ttqTrack("CompletePayment", {
+    contents,
+    content_id: contentId,
+    content_type: "product",
+    value: payload.value,
+    currency: payload.currency,
+    event_id: payload.transaction_id,
+  });
 
   // 5. Snap Pixel Call
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
