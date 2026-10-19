@@ -235,22 +235,15 @@ snaptr('track','PAGE_VIEW');`}
         suppressHydrationWarning
       >
         {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-NSC7CM78"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-KB4BDRCC"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
+        {/* GTM-NSC7CM78 — مخفي مؤقتاً
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NSC7CM78"
+        height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript>
+        */}
+        {/* GTM-KB4BDRCC — مخفي مؤقتاً
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KB4BDRCC"
+        height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript>
+        */}
+        {/* GTM-WS8L6DZV ✅ الوحيد الشغال */}
         <noscript>
           <iframe
             src="https://www.googletagmanager.com/ns.html?id=GTM-WS8L6DZV"
