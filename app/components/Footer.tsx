@@ -25,7 +25,7 @@ export default async function Footer() {
               <Image src="/commerce.webp" alt="السجل التجاري" width={52} height={52} className="object-contain shrink-0" />
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-700">السجل التجاري</span>
-                <span dir="ltr" className="text-xs text-gray-500 tabular-nums">7055426618</span>
+                <span dir="ltr" className="text-xs text-gray-500 tabular-nums">315112094400003</span>
               </div>
             </div>
 
@@ -42,7 +42,7 @@ export default async function Footer() {
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-gray-700">شهادة التوثيق</span>
                 <span className="text-xs text-gray-500">مركز الاعمال</span>
-                <span dir="ltr" className="text-xs text-gray-500 tabular-nums">0000331902</span>
+                <span dir="ltr" className="text-xs text-gray-500 tabular-nums">7055426618</span>
               </div>
             </div>
           </div>
