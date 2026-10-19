@@ -1,18 +1,15 @@
 /**
  * Tracking & Analytics Helper (GTM / TikTok Pixel / GA4 / Snap Pixel)
  *
- * يُطلق هذه الدوال من الـ Client Components لإرسال أحداث التجارة الإلكترونية
- * المتوافقة كلياً مع:
- *  - Google Tag Manager (Data Layer)
- *  - Google Analytics 4 (GA4 Standard E-commerce)
- *  - TikTok Pixel (direct ttq call — with retry if ttq not yet loaded)
- *  - Snap Pixel (snaptr)
+ * ⚠️  TikTok events are sent ONLY via direct ttqTrack() — NOT via GTM dataLayer.
+ *     This prevents triple-firing (GTM add_to_cart tag + GTM AddToCart tag + direct call).
+ *     GTM dataLayer is used ONLY for GA4 standard e-commerce events.
  *
  * الأحداث المدعومة:
  *  - ViewContent / view_item      (عرض تفاصيل المنتج ومطابقة الكتالوج)
  *  - AddToCart / add_to_cart      (إضافة منتج للسلة)
  *  - InitiateCheckout / begin_checkout (بدء الدفع)
- *  - CompletePayment / PlaceAnOrder / purchase (إتمام الشراء)
+ *  - CompletePayment / purchase   (إتمام الشراء)
  */
 
 declare global {
@@ -35,9 +32,13 @@ function dl(): Record<string, unknown>[] {
 
 /**
  * استدعاء TikTok Pixel مع retry تلقائي إذا لم يكن ttq محملاً بعد.
- * السبب: السكريبت strategy="afterInteractive" قد يتأخر عن أول render.
+ * يستخدم event_id فريد لمنع التكرار في حالة وصول الحدث أكثر من مرة.
  */
-function ttqTrack(event: string, params: Record<string, unknown>, retries = 8): void {
+function ttqTrack(
+  event: string,
+  params: Record<string, unknown>,
+  retries = 8
+): void {
   if (typeof window === "undefined") return;
   if (window.ttq && typeof window.ttq.track === "function") {
     try {
@@ -53,18 +54,23 @@ function ttqTrack(event: string, params: Record<string, unknown>, retries = 8): 
   }
 }
 
+/** معرف فريد لكل حدث لمنع التكرار (deduplication) */
+function makeEventId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 // ─────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────
 
 export interface GtmItem {
-  item_id: string;        // _id للمنتج في قاعدة البيانات (مطابق لـ Catalog id)
-  item_name: string;      // اسم المنتج
-  price: number;          // السعر
+  item_id: string;
+  item_name: string;
+  price: number;
   quantity: number;
   item_brand?: string;
   item_category?: string;
-  discount?: number;      // مقدار الخصم إن وجد
+  discount?: number;
 }
 
 export interface ViewItemPayload {
@@ -75,20 +81,20 @@ export interface ViewItemPayload {
 
 export interface AddToCartPayload {
   currency: string;
-  value: number;          // سعر × الكمية
+  value: number;
   items: GtmItem[];
 }
 
 export interface BeginCheckoutPayload {
   currency: string;
-  value: number;          // إجمالي السلة
+  value: number;
   items: GtmItem[];
 }
 
 export interface PurchasePayload {
-  transaction_id: string; // رقم الطلب الفريد
+  transaction_id: string;
   currency: string;
-  value: number;          // الإجمالي النهائي
+  value: number;
   items: GtmItem[];
 }
 
@@ -98,7 +104,7 @@ export interface PurchasePayload {
 
 function toTikTokContents(items: GtmItem[]) {
   return items
-    .filter((it) => it.item_id) // تأكد من وجود item_id
+    .filter((it) => it.item_id)
     .map((it) => ({
       content_id: String(it.item_id),
       content_name: it.item_name || "",
@@ -114,15 +120,16 @@ function toTikTokContents(items: GtmItem[]) {
 
 /**
  * ViewContent / view_item
- * يُطلق عند فتح صفحة المنتج لمطابقة الكتالوج في تيك توك وجوجل
+ * يُطلق عند فتح صفحة المنتج
  */
 export function pushViewItem(payload: ViewItemPayload): void {
   const primaryItem = payload.items[0];
   const contentId = primaryItem ? String(primaryItem.item_id) : "";
   const contentName = primaryItem ? primaryItem.item_name : "";
   const contents = toTikTokContents(payload.items);
+  const eventId = makeEventId("vc");
 
-  // 1. Google Tag Manager — GA4 Event
+  // ── GA4 via GTM (only) ───────────────────────────────
   dl().push({ ecommerce: null });
   dl().push({
     event: "view_item",
@@ -131,33 +138,11 @@ export function pushViewItem(payload: ViewItemPayload): void {
       value: payload.value,
       items: payload.items,
     },
-    // خصائص مباشرة لقراءة GTM tags
-    content_id: contentId,
-    content_name: contentName,
-    content_type: "product",
-    value: payload.value,
-    currency: payload.currency,
-    contents,
   });
 
-  // 2. Google Tag Manager — TikTok Standard Event Name (لو التاج معمول على ViewContent)
-  dl().push({
-    event: "ViewContent",
-    content_id: contentId,
-    content_name: contentName,
-    content_type: "product",
-    value: payload.value,
-    currency: payload.currency,
-    contents,
-    ecommerce: {
-      currency: payload.currency,
-      value: payload.value,
-      items: payload.items,
-    },
-  });
-
-  // 3. TikTok Direct Pixel Call (مع retry تلقائي)
+  // ── TikTok Direct (1 call only, no GTM duplication) ──
   ttqTrack("ViewContent", {
+    event_id: eventId,
     content_id: contentId,
     content_type: "product",
     content_name: contentName,
@@ -168,7 +153,7 @@ export function pushViewItem(payload: ViewItemPayload): void {
     contents,
   });
 
-  // 4. Snap Pixel Call
+  // ── Snap Pixel ────────────────────────────────────────
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
     try {
       window.snaptr("track", "VIEW_CONTENT", {
@@ -182,15 +167,16 @@ export function pushViewItem(payload: ViewItemPayload): void {
 
 /**
  * AddToCart / add_to_cart
- * يُطلق عند إضافة منتج للسلة من أي مكان (الكروت أو صفحة المنتج)
+ * يُطلق عند إضافة منتج للسلة — حدث واحد فقط لا ثلاثة!
  */
 export function pushAddToCart(payload: AddToCartPayload): void {
   const primaryItem = payload.items[0];
   const contentId = primaryItem ? String(primaryItem.item_id) : "";
   const contentName = primaryItem ? primaryItem.item_name : "";
   const contents = toTikTokContents(payload.items);
+  const eventId = makeEventId("atc");
 
-  // 1. GTM — GA4 add_to_cart
+  // ── GA4 via GTM (only) ───────────────────────────────
   dl().push({ ecommerce: null });
   dl().push({
     event: "add_to_cart",
@@ -199,32 +185,11 @@ export function pushAddToCart(payload: AddToCartPayload): void {
       value: payload.value,
       items: payload.items,
     },
-    content_id: contentId,
-    content_name: contentName,
-    content_type: "product",
-    value: payload.value,
-    currency: payload.currency,
-    contents,
   });
 
-  // 2. GTM — TikTok AddToCart Trigger
-  dl().push({
-    event: "AddToCart",
-    content_id: contentId,
-    content_name: contentName,
-    content_type: "product",
-    value: payload.value,
-    currency: payload.currency,
-    contents,
-    ecommerce: {
-      currency: payload.currency,
-      value: payload.value,
-      items: payload.items,
-    },
-  });
-
-  // 3. TikTok Direct Pixel Call (مع retry تلقائي)
+  // ── TikTok Direct (1 call only, no GTM duplication) ──
   ttqTrack("AddToCart", {
+    event_id: eventId,
     contents,
     content_id: contentId,
     content_name: contentName,
@@ -233,7 +198,7 @@ export function pushAddToCart(payload: AddToCartPayload): void {
     currency: payload.currency,
   });
 
-  // 4. Snap Pixel Call
+  // ── Snap Pixel ────────────────────────────────────────
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
     try {
       window.snaptr("track", "ADD_CART", {
@@ -254,8 +219,9 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
   const contents = toTikTokContents(payload.items);
   const primaryItem = payload.items[0];
   const contentId = primaryItem ? String(primaryItem.item_id) : "";
+  const eventId = makeEventId("ic");
 
-  // 1. GTM — GA4 begin_checkout
+  // ── GA4 via GTM (only) ───────────────────────────────
   dl().push({ ecommerce: null });
   dl().push({
     event: "begin_checkout",
@@ -264,30 +230,11 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
       value: payload.value,
       items: payload.items,
     },
-    content_type: "product",
-    content_id: contentId,
-    value: payload.value,
-    currency: payload.currency,
-    contents,
   });
 
-  // 2. GTM — TikTok InitiateCheckout Trigger
-  dl().push({
-    event: "InitiateCheckout",
-    content_type: "product",
-    content_id: contentId,
-    value: payload.value,
-    currency: payload.currency,
-    contents,
-    ecommerce: {
-      currency: payload.currency,
-      value: payload.value,
-      items: payload.items,
-    },
-  });
-
-  // 3. TikTok Direct Pixel Call (مع retry تلقائي)
+  // ── TikTok Direct (1 call only) ──────────────────────
   ttqTrack("InitiateCheckout", {
+    event_id: eventId,
     contents,
     content_id: contentId,
     content_type: "product",
@@ -295,7 +242,7 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
     currency: payload.currency,
   });
 
-  // 4. Snap Pixel Call
+  // ── Snap Pixel ────────────────────────────────────────
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
     try {
       window.snaptr("track", "START_CHECKOUT", {
@@ -309,7 +256,7 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
 }
 
 /**
- * CompletePayment / PlaceAnOrder / purchase
+ * CompletePayment / purchase
  * يُطلق بعد تأكيد الشراء أو إتمام الطلب بنجاح
  */
 export function pushPurchase(payload: PurchasePayload): void {
@@ -317,7 +264,7 @@ export function pushPurchase(payload: PurchasePayload): void {
   const primaryItem = payload.items[0];
   const contentId = primaryItem ? String(primaryItem.item_id) : "";
 
-  // 1. GTM — GA4 purchase
+  // ── GA4 via GTM (only) ───────────────────────────────
   dl().push({ ecommerce: null });
   dl().push({
     event: "purchase",
@@ -327,55 +274,19 @@ export function pushPurchase(payload: PurchasePayload): void {
       value: payload.value,
       items: payload.items,
     },
-    transaction_id: payload.transaction_id,
-    content_type: "product",
-    content_id: contentId,
-    value: payload.value,
-    currency: payload.currency,
-    contents,
   });
 
-  // 2. GTM — TikTok CompletePayment Trigger
-  dl().push({
-    event: "CompletePayment",
-    event_id: payload.transaction_id,
-    transaction_id: payload.transaction_id,
-    content_type: "product",
-    content_id: contentId,
-    value: payload.value,
-    currency: payload.currency,
-    contents,
-    ecommerce: {
-      transaction_id: payload.transaction_id,
-      currency: payload.currency,
-      value: payload.value,
-      items: payload.items,
-    },
-  });
-
-  // 3. GTM — TikTok PlaceAnOrder Trigger (لتغطية التاجات التي تستخدم PlaceAnOrder)
-  dl().push({
-    event: "PlaceAnOrder",
-    event_id: payload.transaction_id,
-    transaction_id: payload.transaction_id,
-    content_type: "product",
-    content_id: contentId,
-    value: payload.value,
-    currency: payload.currency,
-    contents,
-  });
-
-  // 4. TikTok Direct Pixel Call (مع retry تلقائي)
+  // ── TikTok Direct (1 call only) ──────────────────────
   ttqTrack("CompletePayment", {
+    event_id: payload.transaction_id, // نستخدم orderId كـ event_id لمنع التكرار
     contents,
     content_id: contentId,
     content_type: "product",
     value: payload.value,
     currency: payload.currency,
-    event_id: payload.transaction_id,
   });
 
-  // 5. Snap Pixel Call
+  // ── Snap Pixel ────────────────────────────────────────
   if (typeof window !== "undefined" && typeof window.snaptr === "function") {
     try {
       window.snaptr("track", "PURCHASE", {
