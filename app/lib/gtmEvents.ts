@@ -280,6 +280,7 @@ export function pushBeginCheckout(payload: BeginCheckoutPayload): void {
     try {
       window.ttq.track("InitiateCheckout", {
         contents,
+        content_id: primaryItem ? String(primaryItem.item_id) : "",
         content_type: "product",
         value: payload.value,
         currency: payload.currency,
@@ -362,6 +363,7 @@ export function pushPurchase(payload: PurchasePayload): void {
     try {
       window.ttq.track("CompletePayment", {
         contents,
+        content_id: primaryItem ? String(primaryItem.item_id) : "",
         content_type: "product",
         value: payload.value,
         currency: payload.currency,
