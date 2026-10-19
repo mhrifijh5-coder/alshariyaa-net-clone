@@ -30,9 +30,13 @@ function dl(): Record<string, unknown>[] {
   return window.dataLayer;
 }
 
+/** معرف بكسل TikTok الخاص بالسلة فقط */
+const TTQ_PIXEL_ID = "DBB5GLBC77U1UMSUNCAG";
+
 /**
- * استدعاء TikTok Pixel مع retry تلقائي إذا لم يكن ttq محملاً بعد.
- * يستخدم event_id فريد لمنع التكرار في حالة وصول الحدث أكثر من مرة.
+ * استدعاء TikTok Pixel المحدد (سله) مع retry تلقائي.
+ * يستخدم ttq.instance(PIXEL_ID) لاستهداف البكسل الصحيح فقط
+ * دون إطلاق الـ 5 pixels الأخرى الموجودة في GTM.
  */
 function ttqTrack(
   event: string,
@@ -40,9 +44,18 @@ function ttqTrack(
   retries = 8
 ): void {
   if (typeof window === "undefined") return;
-  if (window.ttq && typeof window.ttq.track === "function") {
+  const ttq = window.ttq as (typeof window.ttq & {
+    instance?: (id: string) => { track: (e: string, p?: Record<string, unknown>) => void };
+  }) | undefined;
+  if (ttq) {
     try {
-      window.ttq.track(event, params);
+      // استخدم instance() لاستهداف بكسل "سله" فقط
+      if (typeof ttq.instance === "function") {
+        ttq.instance(TTQ_PIXEL_ID).track(event, params);
+      } else if (typeof ttq.track === "function") {
+        ttq.track(event, params);
+      }
+      return;
     } catch (e) {
       console.warn(`TikTok Pixel ${event} error:`, e);
     }
