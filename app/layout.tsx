@@ -243,7 +243,6 @@ snaptr('track','PAGE_VIEW');`}
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KB4BDRCC"
         height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript>
         */}
-        {/* GTM-WS8L6DZV — مخفي مؤقتاً */}
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WS8L6DZV"
         height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript>
        
