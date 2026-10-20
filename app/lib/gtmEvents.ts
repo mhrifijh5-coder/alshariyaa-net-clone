@@ -18,9 +18,6 @@ declare global {
     ttq?: {
       track: (event: string, params?: Record<string, unknown>) => void;
       page?: () => void;
-      instance?: (pixelId: string) => {
-        track: (event: string, params?: Record<string, unknown>) => void;
-      };
     };
     snaptr?: (action: string, event: string, params?: Record<string, unknown>) => void;
   }
