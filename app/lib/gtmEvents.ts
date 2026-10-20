@@ -28,12 +28,12 @@ function dl(): Record<string, unknown>[] {
   return window.dataLayer;
 }
 
-/** معرف بكسل TikTok (الافتراضي هو البكسل المرتبط بـ GTM أو المتغير البيئي) */
-export const TTQ_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "DBBSM9RC77UBMTILB9V0";
+/** معرف بكسل TikTok (الافتراضي هو البكسل المرتبط بحاوية GTM-5XPV65R7 أو المتغير البيئي) */
+export const TTQ_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "DBBSUGRC77U68GIOPJK0";
 
 /**
  * استدعاء TikTok Pixel مع retry تلقائي.
- * يستدعي ttq.track المباشر حتى ترصده إضافة TikTok Pixel Helper في المتصفح وتظهر الأحداث كاملة.
+ * يستدعي ttq.track المباشر حتى ترصده إضافة TikTok Pixel Helper في المتصفح وتظهر الأحداث كاملة بدون تكرار.
  */
 function ttqTrack(
   event: string,
@@ -44,30 +44,29 @@ function ttqTrack(
 
   const ttq = window.ttq;
 
-  if (ttq && typeof ttq.track === "function") {
+  if (ttq) {
     try {
       const eventId = params.event_id ? String(params.event_id) : undefined;
       const options = eventId ? { event_id: eventId } : undefined;
 
-      // ttq.track هو التابع القياسي الذي ترصده إضافة TikTok Pixel Helper
-      ttq.track(event, params, options);
+      // 1. استدعاء ttq.track المباشر — وهو التابع الرسمي الذي ترصده إضافة TikTok Pixel Helper
+      if (typeof ttq.track === "function") {
+        ttq.track(event, params, options);
+        return;
+      }
 
-      // في حال وجود instance مخصص أيضاً
+      // 2. كحل بديل فقط في حال لم يتوفر ttq.track المباشر
       if (typeof ttq.instance === "function" && TTQ_PIXEL_ID) {
-        try {
-          const inst = ttq.instance(TTQ_PIXEL_ID);
-          if (inst && typeof inst.track === "function" && (inst as unknown) !== ttq) {
-            inst.track(event, params, options);
-          }
-        } catch {
-          // silent fallback
+        const inst = ttq.instance(TTQ_PIXEL_ID);
+        if (inst && typeof inst.track === "function") {
+          inst.track(event, params, options);
+          return;
         }
       }
-      return;
     } catch (e) {
       console.warn(`TikTok Pixel ${event} error:`, e);
+      return;
     }
-    return;
   }
 
   // ttq لم يُحمل بعد — انتظر 200ms وأعد المحاولة
