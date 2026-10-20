@@ -44,12 +44,9 @@ function ttqTrack(
   retries = 8
 ): void {
   if (typeof window === "undefined") return;
-  const ttq = window.ttq as (typeof window.ttq & {
-    instance?: (id: string) => { track: (e: string, p?: Record<string, unknown>) => void };
-  }) | undefined;
+  const ttq = window.ttq;
   if (ttq) {
     try {
-      // استخدم instance() لاستهداف بكسل "سله" فقط
       if (typeof ttq.instance === "function") {
         ttq.instance(TTQ_PIXEL_ID).track(event, params);
       } else if (typeof ttq.track === "function") {
