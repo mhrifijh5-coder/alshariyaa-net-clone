@@ -160,13 +160,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Script>
         */}
       
-        {/* <Script id="google-tag-manager-3" strategy="beforeInteractive">
+        <Script id="google-tag-manager-3" strategy="beforeInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-WS8L6DZV');`}
-        </Script> */}
+        </Script>
         {/* End Google Tag Manager */}
 
         {/* Google Fonts: Cairo */}
@@ -244,8 +244,8 @@ snaptr('track','PAGE_VIEW');`}
         height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript>
         */}
         {/* GTM-WS8L6DZV — مخفي مؤقتاً */}
-        {/* <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WS8L6DZV"
-        height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript> */}
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WS8L6DZV"
+        height="0" width="0" style={{display:"none",visibility:"hidden"}}></iframe></noscript>
        
         {/* End Google Tag Manager (noscript) */}
         <ClientLayout footer={<Footer />} company={c}>
