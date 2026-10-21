@@ -8,6 +8,7 @@ import Link from "next/link";
 import type { Product } from "../../components/products/types";
 import { useCartStore } from "../../store/cartStore";
 import { pushViewItem, pushAddToCart } from "../../lib/gtmEvents";
+import { pushTikTokViewContent, pushTikTokAddToCart } from "../../lib/tiktokEvents";
 import ProductImages from "./components/ProductImages";
 import ProductInfo from "./components/ProductInfo";
 import ProductDetails from "./components/ProductDetails";
@@ -26,6 +27,8 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
   // ── Track ViewContent / view_item when product is viewed ────────────────────
   useEffect(() => {
     if (!product) return;
+    
+    // Google Analytics view_item
     pushViewItem({
       currency: "SAR",
       value: finalPrice,
@@ -39,6 +42,18 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
           item_category: product.category,
         },
       ],
+    });
+
+    // TikTok Pixel ViewContent
+    pushTikTokViewContent({
+      content_id: String(product._id),
+      content_type: "product",
+      content_name: product.name,
+      content_category: product.category || "",
+      price: finalPrice,
+      quantity: 1,
+      currency: "SAR",
+      value: finalPrice,
     });
   }, [product, finalPrice]);
 
@@ -61,6 +76,8 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
 
   const handleAddToCart = (qty: number = 1) => {
     addItem(product, qty);
+    
+    // Google Analytics add_to_cart
     pushAddToCart({
       currency: "SAR",
       value: finalPrice * qty,
@@ -75,6 +92,19 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
         },
       ],
     });
+
+    // TikTok Pixel AddToCart
+    pushTikTokAddToCart({
+      content_id: String(product._id),
+      content_type: "product",
+      content_name: product.name,
+      content_category: product.category || "",
+      price: finalPrice,
+      quantity: qty,
+      currency: "SAR",
+      value: finalPrice * qty,
+    });
+
     setAddedToCart(true);
   };
 
