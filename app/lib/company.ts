@@ -28,6 +28,19 @@ export interface CompanyData {
   link2Type?: string;
   linkType2?: string;
   link2?: string;
+  // Footer Documents & Certifications
+  crName?: string;
+  crNumber?: string;
+  crImage?: string;
+  crLink?: string;
+  bcTitle?: string;
+  bcSubtitle?: string;
+  bcNumber?: string;
+  bcImage?: string;
+  bcLink?: string;
+  vatTitle?: string;
+  vatImage?: string;
+  vatPdf?: string;
 }
 
 export async function getCompanyData(): Promise<CompanyData> {

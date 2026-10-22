@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const backendUrl = process.env.BACKEND_URL || "https://alshareehaa-backend.vercel.app";
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
+  }
 
+  const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   const frontendUrl = (process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").split(",")[0].trim();
 
   let res: Response;
