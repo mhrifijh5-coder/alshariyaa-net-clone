@@ -76,7 +76,7 @@ export default function SimCardsClient({ initialProducts }: SimCardsClientProps)
               className="object-cover object-center"
               priority
               sizes="100vw"
-              quality={85}
+              quality={80}
             />
           </div>
 

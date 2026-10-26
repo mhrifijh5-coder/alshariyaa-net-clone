@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 2592000,
     deviceSizes: [640, 750, 1080, 1200, 1920],
     imageSizes: [32, 64, 96, 128, 256, 384],
-    qualities: [75, 80],
+    qualities: [75, 80, 85],
     remotePatterns: [
       { hostname: "ibb.co" },
       { hostname: "i.ibb.co" },

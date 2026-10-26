@@ -13,18 +13,24 @@ const IDS = [
 const BACKEND = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "https://alshareehaa-backend.vercel.app";
 
 // Fix 7: request واحدة بدل 4 — /api/products/by-ids?ids=id1,id2,id3,id4
+let cachedMostDemandedBackup: Product[] = [];
+
 async function getMostDemanded(): Promise<Product[]> {
   try {
     const idsParam = IDS.join(",");
     const res = await fetch(`${BACKEND}/api/products/by-ids?ids=${idsParam}`, {
-      next: { revalidate: 86400, tags: ["products"] },
-      signal: AbortSignal.timeout(3000),
+      next: { revalidate: 3600, tags: ["products"] },
+      signal: AbortSignal.timeout(15000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return cachedMostDemandedBackup.length > 0 ? cachedMostDemandedBackup : [];
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    if (Array.isArray(data) && data.length > 0) {
+      cachedMostDemandedBackup = data;
+      return data;
+    }
+    return cachedMostDemandedBackup.length > 0 ? cachedMostDemandedBackup : [];
   } catch {
-    return [];
+    return cachedMostDemandedBackup.length > 0 ? cachedMostDemandedBackup : [];
   }
 }
 

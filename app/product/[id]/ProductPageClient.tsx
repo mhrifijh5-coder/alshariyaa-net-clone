@@ -194,17 +194,23 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
               </span>
             </div>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              if (addedToCart) router.push("/cart");
-              else handleAddToCart(1);
-            }}
-            className="cart-btn w-full py-4 rounded-2xl flex items-center justify-center gap-2 text-base font-black"
-          >
-            <IoCartOutline size={20} />
-            {addedToCart ? "عرض السلة ✓" : "أضف للسلة"}
-          </motion.button>
+          {!product.inStock ? (
+            <div className="w-full py-3.5 rounded-2xl bg-gray-100 border border-gray-200 text-gray-500 font-black text-center text-sm cursor-not-allowed select-none">
+              نفذت الكمية - غير متوفر للشراء
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (addedToCart) router.push("/cart");
+                else handleAddToCart(1);
+              }}
+              className="cart-btn w-full py-4 rounded-2xl flex items-center justify-center gap-2 text-base font-black"
+            >
+              <IoCartOutline size={20} />
+              {addedToCart ? "عرض السلة ✓" : "أضف للسلة"}
+            </motion.button>
+          )}
         </div>
       </div>
     </main>

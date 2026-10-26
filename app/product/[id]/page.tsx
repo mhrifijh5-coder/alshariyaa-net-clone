@@ -10,7 +10,8 @@ const BACKEND =
   "http://localhost:5000";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.alshareehanet.com";
 
-export const revalidate = 86400;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
@@ -31,8 +32,8 @@ export async function generateStaticParams() {
 const getProduct = cache(async (id: string) => {
   try {
     const r = await fetch(`${BACKEND}/api/products/${id}`, {
-      next: { revalidate: 86400, tags: [`product_${id}`] },
-      signal: AbortSignal.timeout(3000),
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     return r.ok ? await r.json() : null;
   } catch {

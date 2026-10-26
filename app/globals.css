@@ -170,3 +170,13 @@ input, textarea, select {
 }
 
 
+
+.cart-btn:disabled, .cart-btn[disabled] {
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  border-color: #e5e7eb !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  opacity: 0.8 !important;
+  box-shadow: none !important;
+}
