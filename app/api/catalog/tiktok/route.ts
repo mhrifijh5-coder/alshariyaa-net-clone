@@ -22,43 +22,50 @@ function escapeXml(unsafe: string): string {
 
 export async function GET() {
   try {
+    console.log("[TikTok Catalog] Fetching from:", `${BACKEND}/api/products?limit=1000`);
+    
     const res = await fetch(`${BACKEND}/api/products?limit=1000`, {
       next: { revalidate: 3600 },
       headers: { "Content-Type": "application/json" },
     });
 
     if (!res.ok) {
-      return new NextResponse("Failed to fetch products from backend", { status: 502 });
+      console.error("[TikTok Catalog] Backend fetch failed:", res.status, res.statusText);
+      return new NextResponse(`Failed to fetch products from backend: ${res.status}`, { status: 502 });
     }
 
     const products = await res.json();
+    console.log("[TikTok Catalog] Products fetched:", Array.isArray(products) ? products.length : "not an array");
+    
     if (!Array.isArray(products)) {
-      return new NextResponse("Invalid products data", { status: 502 });
+      console.error("[TikTok Catalog] Invalid products data type:", typeof products);
+      return new NextResponse("Invalid products data - expected array", { status: 502 });
     }
 
     const itemsXml = products
-      .map((p) => {
-        const id = String(p._id);
-        const title = escapeXml(p.name || "منتج");
-        const description = escapeXml(
-          (p.description || p.brief || p.name || "").slice(0, 5000)
-        );
-        const link = `${SITE_URL}/product/${id}`;
-        
-        let imageUrl = p.images?.[0] || p.image || "";
-        if (imageUrl && !imageUrl.startsWith("http")) {
-          imageUrl = `${BACKEND}${imageUrl}`;
-        }
-        if (!imageUrl) {
-          imageUrl = `${SITE_URL}/logo.webp`;
-        }
+      .map((p, index) => {
+        try {
+          const id = String(p._id);
+          const title = escapeXml(p.name || "منتج");
+          const description = escapeXml(
+            (p.description || p.brief || p.name || "").slice(0, 5000)
+          );
+          const link = `${SITE_URL}/product/${id}`;
+          
+          let imageUrl = p.images?.[0] || p.image || "";
+          if (imageUrl && !imageUrl.startsWith("http")) {
+            imageUrl = `${BACKEND}${imageUrl}`;
+          }
+          if (!imageUrl) {
+            imageUrl = `${SITE_URL}/logo.webp`;
+          }
 
-        const priceNum = p.salePrice || p.originalPrice || p.price || 0;
-        const priceStr = `${priceNum} SAR`;
-        const availability = p.inStock !== false ? "in stock" : "out of stock";
-        const brand = escapeXml(p.brand || "الشريحة الموثوقة");
+          const priceNum = p.salePrice || p.originalPrice || p.price || 0;
+          const priceStr = `${priceNum} SAR`;
+          const availability = p.inStock !== false ? "in stock" : "out of stock";
+          const brand = escapeXml(p.brand || "الشريحة الموثوقة");
 
-        return `
+          return `
     <item>
       <g:id>${id}</g:id>
       <g:title>${title}</g:title>
@@ -72,6 +79,10 @@ export async function GET() {
       ${p.salePrice && p.originalPrice && p.salePrice < p.originalPrice ? `<g:sale_price>${p.salePrice} SAR</g:sale_price>` : ""}
       <g:google_product_category>536</g:google_product_category>
     </item>`;
+        } catch (itemError) {
+          console.error(`[TikTok Catalog] Error processing product at index ${index}:`, itemError, p);
+          return ""; // Skip this product
+        }
       })
       .join("");
 
@@ -85,6 +96,8 @@ export async function GET() {
   </channel>
 </rss>`;
 
+    console.log("[TikTok Catalog] XML generated successfully, length:", xml.length);
+    
     return new NextResponse(xml, {
       status: 200,
       headers: {
@@ -93,7 +106,11 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("TikTok Catalog Feed Error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[TikTok Catalog] Error:", error);
+    console.error("[TikTok Catalog] Error stack:", error instanceof Error ? error.stack : "No stack");
+    return new NextResponse(
+      `Internal Server Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      { status: 500 }
+    );
   }
 }
