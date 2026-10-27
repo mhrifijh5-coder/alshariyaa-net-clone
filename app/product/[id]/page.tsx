@@ -72,7 +72,7 @@ export async function generateMetadata({
     : `اشتري ${productName}${parts.length ? " - " + parts.join(" | ") : ""} من ${siteName} بأفضل سعر مع شحن سريع لجميع مناطق المملكة`;
 
   const rawImg = product.images?.[0] || product.image || "";
-  const imageUrl = rawImg
+  const imageUrl = rawImg && typeof rawImg === "string"
     ? rawImg.startsWith("http")
       ? rawImg
       : `${BACKEND}${rawImg}`
@@ -129,7 +129,7 @@ export default async function ProductPage({
   const siteName = company.nameAr || "الشريحة الموثوقة";
   const price = product?.salePrice || product?.price || 0;
   const rawImg = product?.images?.[0] || product?.image || "";
-  const imageUrl = rawImg
+  const imageUrl = rawImg && typeof rawImg === "string"
     ? rawImg.startsWith("http")
       ? rawImg
       : `${BACKEND}${rawImg}`
