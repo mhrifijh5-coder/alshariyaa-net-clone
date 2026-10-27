@@ -85,12 +85,12 @@ export async function generateMetadata({
     description,
     keywords: [
       product.name,
-      product.brand || "",
-      product.category || "",
+      product.brand,
+      product.category,
       "شرائح اتصال",
       "باقات إنترنت",
       siteName,
-    ].filter(Boolean),
+    ].filter((k): k is string => Boolean(k) && typeof k === "string"),
     openGraph: {
       type: "website",
       url: canonicalUrl,
