@@ -64,9 +64,9 @@ export default function ProductPageClient({ id, initialProduct }: { id: string; 
       </div>
     );
 
-  const resolveImg = (src: string) => (src.startsWith("http") ? src : `${API}${src}`);
+  const resolveImg = (src: string) => (src && typeof src === "string" && src.startsWith("http") ? src : `${API}${src}`);
   const merged = [...(product.images || []), ...(product.image ? [product.image] : [])];
-  const allImages = [...new Set(merged)].map(resolveImg);
+  const allImages = [...new Set(merged)].filter((img): img is string => Boolean(img) && typeof img === "string").map(resolveImg);
 
   const handleShare = async () => {
     try {
