@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 import { getBackend, forwardCookies } from "../../../_lib";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ key: string }> }) {
@@ -8,6 +8,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ k
     const res = await fetch(`${getBackend()}/api/admin/company/footer-media/${key}`, forwardCookies(req, { method: "DELETE" }));
     const data = await res.json();
     revalidateTag("company");
+    revalidatePath("/", "layout");
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: "فشل حذف الملف" }, { status: 500 });

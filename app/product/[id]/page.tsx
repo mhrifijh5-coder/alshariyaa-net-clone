@@ -10,14 +10,14 @@ const BACKEND =
   "http://localhost:5000";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.alshareehanet.com";
 
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const revalidate = 2592000;
+// Products are static and fixed
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
     const res = await fetch(`${BACKEND}/api/products?limit=500&fields=_id`, {
-      next: { revalidate: 86400 },
+      next: { revalidate: 2592000, tags: ["products"] },
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return [];
@@ -32,7 +32,7 @@ export async function generateStaticParams() {
 const getProduct = cache(async (id: string) => {
   try {
     const r = await fetch(`${BACKEND}/api/products/${id}`, {
-      cache: "no-store",
+      next: { revalidate: 2592000, tags: ["products"] },
       signal: AbortSignal.timeout(5000),
     });
     return r.ok ? await r.json() : null;

@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 import { getBackend, forwardCookies } from "../_lib";
 
 export async function GET(req: NextRequest) {
   const res = await fetch(`${getBackend()}/api/admin/company`, forwardCookies(req, {
-    cache: "force-cache",
-    next: { tags: ["company"] }
+    cache: "no-store",
   }));
   if (!res.ok) return NextResponse.json({ error: "Backend unavailable" }, { status: res.status });
   const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  return NextResponse.json(data, {
+    status: res.status,
+    headers: { "Cache-Control": "private, no-store, no-cache, must-revalidate" },
+  });
 }
 
 export async function PUT(req: NextRequest) {
@@ -21,6 +23,10 @@ export async function PUT(req: NextRequest) {
   }));
   if (!res.ok) return NextResponse.json({ error: "Backend unavailable" }, { status: res.status });
   const data = await res.json();
+
+  // تحديث فوري للفوتر وجميع صفحات الموقع عند تعديل ملفات أو بيانات الشركة
   revalidateTag("company");
+  revalidatePath("/", "layout");
+
   return NextResponse.json(data, { status: res.status });
 }

@@ -17,12 +17,15 @@ export async function GET(req: NextRequest) {
   );
   const data = await res.json();
 
-  // Cache public product listings at the edge — search results get shorter TTL
-  const ttl = q ? 60 : 300;
+  // Products are permanent and fixed — cache listings heavily
+  const cacheHeader = q
+    ? "public, s-maxage=300, stale-while-revalidate=3600"
+    : "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=31536000";
+
   return NextResponse.json(data, {
     status: res.status,
     headers: {
-      "Cache-Control": `public, s-maxage=${ttl}, stale-while-revalidate=86400`,
+      "Cache-Control": cacheHeader,
     },
   });
 }

@@ -6,11 +6,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const res = await fetch(`${getBackend()}/api/products/${id}`, forwardCookies(req, { method: "GET" }));
   const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  return NextResponse.json(data, {
+    status: res.status,
+    headers: {
+      "Cache-Control": "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=31536000",
+    },
+  });
 }
 
 // DELETE /api/products/:id (admin only - should go through /api/admin/products/:id)
-// This is kept for backward compatibility but should be protected by admin middleware in backend
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const res = await fetch(`${getBackend()}/api/admin/products/${id}`, forwardCookies(req, { method: "DELETE" }));

@@ -6,7 +6,7 @@ import { getBackend } from "../admin/_lib";
 export async function GET() {
   try {
     const res = await fetch(`${getBackend()}/api/admin/company/public`, {
-      next: { revalidate: 300 },
+      next: { revalidate: 60, tags: ["company"] },
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) {
@@ -16,10 +16,9 @@ export async function GET() {
       });
     }
     const data = await res.json();
-    // Vercel Edge caches for 5 min; serves stale up to 24h while revalidating
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
     });
   } catch {
